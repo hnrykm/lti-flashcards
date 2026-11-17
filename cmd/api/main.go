@@ -13,6 +13,7 @@ import (
 
 	"github.com/hnrykm/lti-flashcards/internal/auth"
 	"github.com/hnrykm/lti-flashcards/internal/db"
+	"github.com/hnrykm/lti-flashcards/internal/flashcards"
 )
 
 func main() {
@@ -53,6 +54,7 @@ func main() {
 	// Everything else under /api needs a session token.
 	secured := api.Group("", signer.Middleware())
 	secured.Get("/me", func(c fiber.Ctx) error { return c.JSON(auth.FromCtx(c)) })
+	flashcards.NewHandler(flashcards.NewStore(pool)).Register(secured)
 
 	log.Fatal(app.Listen(":" + port))
 }
