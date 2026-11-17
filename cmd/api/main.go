@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 
+	"github.com/hnrykm/lti-flashcards/internal/auth"
 	"github.com/hnrykm/lti-flashcards/internal/db"
 )
 
@@ -22,6 +23,10 @@ func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
+	}
+	signer, err := auth.NewSigner([]byte(os.Getenv("SESSION_SECRET")))
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -44,6 +49,10 @@ func main() {
 		}
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
+
+	// Everything else under /api needs a session token.
+	secured := api.Group("", signer.Middleware())
+	secured.Get("/me", func(c fiber.Ctx) error { return c.JSON(auth.FromCtx(c)) })
 
 	log.Fatal(app.Listen(":" + port))
 }
