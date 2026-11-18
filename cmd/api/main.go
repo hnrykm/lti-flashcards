@@ -14,6 +14,7 @@ import (
 	"github.com/hnrykm/lti-flashcards/internal/auth"
 	"github.com/hnrykm/lti-flashcards/internal/db"
 	"github.com/hnrykm/lti-flashcards/internal/flashcards"
+	"github.com/hnrykm/lti-flashcards/internal/lti"
 )
 
 func main() {
@@ -38,9 +39,18 @@ func main() {
 	}
 	defer pool.Close()
 
+	// The JWKS cache runs background refreshes for as long as the app runs.
+	keys, err := lti.NewJWKSCache(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	app := fiber.New(fiber.Config{ErrorHandler: jsonErrors})
 	app.Use(recover.New()) // a panic becomes a 500 instead of a crash
 	app.Use(logger.New())  // one log line per request
+
+	// LTI endpoints: called by the platform and the user's browser.
+	lti.NewHandler(lti.NewPGStore(pool), keys, signer).Register(app)
 
 	// Public API routes.
 	api := app.Group("/api")
@@ -51,7 +61,7 @@ func main() {
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
 
-	// Everything else under /api needs a session token.
+	// Everything else under /api needs a session token from a launch.
 	secured := api.Group("", signer.Middleware())
 	secured.Get("/me", func(c fiber.Ctx) error { return c.JSON(auth.FromCtx(c)) })
 	flashcards.NewHandler(flashcards.NewStore(pool)).Register(secured)
