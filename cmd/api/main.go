@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 
+	"github.com/hnrykm/lti-flashcards/internal/apidocs"
 	"github.com/hnrykm/lti-flashcards/internal/auth"
 	"github.com/hnrykm/lti-flashcards/internal/db"
 	"github.com/hnrykm/lti-flashcards/internal/flashcards"
@@ -60,6 +61,7 @@ func main() {
 		}
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
+	apidocs.Register(api)
 
 	// Everything else under /api needs a session token from a launch.
 	secured := api.Group("", signer.Middleware())
