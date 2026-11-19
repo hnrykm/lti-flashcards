@@ -1,4 +1,18 @@
 services:
+  # The Go API + the built Angular app. http://localhost:3000
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgres://flashcards:flashcards@db:5432/flashcards
+      # Signs session tokens. Dev default only; set SESSION_SECRET in .env for anything real.
+      SESSION_SECRET: ${SESSION_SECRET:-dev-only-session-secret-change-me-0123456789}
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: postgres:16
     environment:

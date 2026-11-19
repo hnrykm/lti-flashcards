@@ -5,11 +5,14 @@ import (
 	"errors"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/gofiber/fiber/v3/middleware/static"
 
 	"github.com/hnrykm/lti-flashcards/internal/apidocs"
 	"github.com/hnrykm/lti-flashcards/internal/auth"
@@ -68,7 +71,26 @@ func main() {
 	secured.Get("/me", func(c fiber.Ctx) error { return c.JSON(auth.FromCtx(c)) })
 	flashcards.NewHandler(flashcards.NewStore(pool)).Register(secured)
 
+	// The Angular build, when present (it is in the Docker image).
+	if dir := os.Getenv("PUBLIC_DIR"); dir != "" {
+		serveSPA(app, dir)
+	}
+
 	log.Fatal(app.Listen(":" + port))
+}
+
+// serveSPA serves the built Angular files and falls back to index.html for
+// any other non-API path, so Angular's router handles it.
+func serveSPA(app *fiber.App, dir string) {
+	index := filepath.Join(dir, "index.html")
+	app.Get("/*", static.New(dir, static.Config{
+		NotFoundHandler: func(c fiber.Ctx) error {
+			if strings.HasPrefix(c.Path(), "/api/") || strings.HasPrefix(c.Path(), "/lti/") {
+				return fiber.ErrNotFound
+			}
+			return c.Status(fiber.StatusOK).SendFile(index)
+		},
+	}))
 }
 
 // jsonErrors makes every error a JSON body like {"error": "..."}.
