@@ -31,7 +31,10 @@ services:
       timeout: 3s
       retries: 10
 
-  # Local Moodle LMS for testing LTI 1.3 launches. http://localhost:8080
+  # Local Moodle LMS for testing LTI 1.3 launches. http://moodle:8080
+  # "moodle" must resolve to 127.0.0.1 on your machine (add "127.0.0.1 moodle" to
+  # /etc/hosts), so the browser and the app container use the same Moodle URL:
+  # the app fetches Moodle's signing keys from http://moodle:8080 on the Docker network.
   moodle-db:
     image: postgres:17
     environment:
@@ -49,7 +52,7 @@ services:
   moodle:
     image: erseco/alpine-moodle:v5.3.1
     environment:
-      SITE_URL: http://localhost:8080
+      SITE_URL: http://moodle:8080
       DB_TYPE: pgsql
       DB_HOST: moodle-db
       DB_PORT: 5432
