@@ -42,10 +42,10 @@ Angular 22 needs Node 22.22.3+ or 24.15+.
 
 ### Try the API with curl
 
-`cmd/devtoken` prints a session token for the seeded dev course, so you can skip the launch:
+`cmd/devtoken` prints a session token for a course, so you can skip the launch. Launch the tool from Moodle once to create the course, then find its ID with `SELECT id, title FROM courses`:
 
 ```sh
-TOKEN=$(go run ./cmd/devtoken -instructor)   # same SESSION_SECRET as the API
+TOKEN=$(go run ./cmd/devtoken -course <id> -instructor)   # same SESSION_SECRET as the API
 curl -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
      -d '{"name":"Chapter 3"}' localhost:3000/api/decks
 ```
@@ -149,7 +149,7 @@ internal/lti/               login, launch, claim checks (tested), JWKS cache, SQ
 internal/auth/              session JWT and bearer middleware
 internal/flashcards/        models, SQL and CRUD handlers
 internal/apidocs/           OpenAPI spec and Swagger UI
-db/migrations/              schema and dev seed (run by Postgres on first start)
+db/migrations/              schema (run by Postgres on first start)
 scripts/moodle-setup.*      registers the tool in the local Moodle
 web/                        Angular app
 ```
