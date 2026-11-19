@@ -1,7 +1,9 @@
 // Command devtoken prints a session token for local curl testing without an
 // LTI launch. It needs the same SESSION_SECRET as the API.
 //
-//	SESSION_SECRET=... go run ./cmd/devtoken -course 1 -instructor
+//	SESSION_SECRET=... go run ./cmd/devtoken -course <id> -instructor
+//
+// The course must already exist; launch the tool from Moodle once to create it.
 package main
 
 import (
@@ -15,10 +17,13 @@ import (
 )
 
 func main() {
-	course := flag.Int64("course", 1, "course ID (1 is the seeded dev course)")
+	course := flag.Int64("course", 0, "course ID (required; see SELECT id, title FROM courses)")
 	user := flag.String("user", "dev-user", "user ID")
 	instructor := flag.Bool("instructor", false, "issue an instructor token")
 	flag.Parse()
+	if *course <= 0 {
+		log.Fatal("-course is required: pass a course ID from SELECT id, title FROM courses")
+	}
 
 	signer, err := auth.NewSigner([]byte(os.Getenv("SESSION_SECRET")))
 	if err != nil {

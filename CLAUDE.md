@@ -11,7 +11,7 @@ docker compose up -d --build     # starts the app, the database and Moodle
 
 Then open http://moodle:8080 and log in as `admin` / `Admin123!` (teacher) or `student` / `Student123!`.
 
-To work without Docker, start only the database with `docker compose up -d db`, run `go run ./cmd/api`, and run `npm start` in `web/`. To call the API without going through Moodle, get a token with `go run ./cmd/devtoken -instructor`.
+To work without Docker, start only the database with `docker compose up -d db`, run `go run ./cmd/api`, and run `npm start` in `web/`. To call the API without going through Moodle, get a token with `go run ./cmd/devtoken -course <id> -instructor` (find the ID with `SELECT id, title FROM courses`).
 
 ## Checking your work
 
