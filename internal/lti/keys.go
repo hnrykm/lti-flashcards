@@ -51,15 +51,19 @@ func (k *JWKSCache) Refresh(ctx context.Context, u string) (jwk.Set, error) {
 // the verified payload. If the token names a key ID we haven't cached, the
 // platform probably rotated keys, so we refetch once. We don't refetch for
 // other failures, or anyone could make us hammer the LMS with bad tokens.
-func verifySignature(ctx context.Context, keys KeySets, jwksURL string, token []byte) ([]byte, error) {
+// debugf logs each step when launch debugging is on.
+func verifySignature(ctx context.Context, keys KeySets, jwksURL string, token []byte, debugf func(string, ...any)) ([]byte, error) {
 	set, err := keys.Get(ctx, jwksURL)
 	if err != nil {
 		return nil, err
 	}
+	debugf("   platform keys from %s: kids %v", jwksURL, keyIDs(set))
 	if kid := tokenKeyID(token); kid != "" {
 		if _, ok := set.LookupKeyID(kid); !ok {
+			debugf("   kid %q not in cached keys (key rotation?), refetching JWKS", kid)
 			if fresh, err := keys.Refresh(ctx, jwksURL); err == nil {
 				set = fresh
+				debugf("   refetched keys: kids %v", keyIDs(set))
 			}
 		}
 	}

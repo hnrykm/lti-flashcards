@@ -54,7 +54,10 @@ func main() {
 	app.Use(logger.New())  // one log line per request
 
 	// LTI endpoints: called by the platform and the user's browser.
-	lti.NewHandler(lti.NewPGStore(pool), keys, signer).Register(app)
+	// LTI_DEBUG=1 logs what the LMS sends and what the tool sends back.
+	lti.NewHandler(lti.NewPGStore(pool), keys, signer).
+		WithDebug(os.Getenv("LTI_DEBUG") != "").
+		Register(app)
 
 	// Public API routes.
 	api := app.Group("/api")

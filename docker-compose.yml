@@ -7,6 +7,8 @@ services:
       # Signs session tokens. Dev default only; set SESSION_SECRET in .env for anything real.
       SESSION_SECRET: ${SESSION_SECRET:-dev-only-session-secret-change-me-0123456789}
       PORT: "3000"
+      # Logs what Moodle sends and what the tool sends back during a launch. Dev only.
+      LTI_DEBUG: "1"
     ports:
       - "3000:3000"
     depends_on:
