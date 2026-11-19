@@ -21,6 +21,7 @@ type Handler struct {
 	keys   KeySets
 	signer *auth.Signer
 	now    func() time.Time // replaceable in tests
+	debug  bool             // see WithDebug
 }
 
 func NewHandler(store Store, keys KeySets, signer *auth.Signer) *Handler {
@@ -56,17 +57,28 @@ func randomToken() (string, error) {
 // browser to the platform's auth URL to ask for a signed id_token.
 func (h *Handler) login(c fiber.Ctx) error {
 	iss, loginHint := param(c, "iss"), param(c, "login_hint")
+	h.debugf("<- LOGIN from LMS: %s %s%s", c.Method(), c.Path(), formatParams(url.Values{
+		"iss":               {iss},
+		"login_hint":        {loginHint},
+		"client_id":         {param(c, "client_id")},
+		"lti_deployment_id": {param(c, "lti_deployment_id")},
+		"target_link_uri":   {param(c, "target_link_uri")},
+		"lti_message_hint":  {param(c, "lti_message_hint")},
+	}))
 	if iss == "" || loginHint == "" {
+		h.debugf("   rejected: iss and login_hint are required")
 		return fiber.NewError(fiber.StatusBadRequest, "iss and login_hint are required")
 	}
 
 	p, err := h.store.FindPlatform(c.Context(), iss, param(c, "client_id"))
 	if errors.Is(err, ErrNotFound) {
+		h.debugf("   rejected: no platforms row for iss %q", iss)
 		return fiber.NewError(fiber.StatusBadRequest, "unknown issuer")
 	}
 	if err != nil {
 		return err
 	}
+	h.debugf("   matched platform #%d (client_id=%s, deployment_id=%s)", p.ID, p.ClientID, p.DeploymentID)
 
 	state, err := randomToken()
 	if err != nil {
@@ -79,6 +91,7 @@ func (h *Handler) login(c fiber.Ctx) error {
 	if err := h.store.SaveState(c.Context(), state, nonce, p.ID, h.now().Add(stateTTL)); err != nil {
 		return err
 	}
+	h.debugf("   saved state=%s nonce=%s (valid for %s)", short(state), short(nonce), stateTTL)
 
 	q := url.Values{
 		"scope":         {"openid"},
@@ -106,5 +119,7 @@ func (h *Handler) login(c fiber.Ctx) error {
 	}
 	authURL.RawQuery = existing.Encode()
 
+	h.debugf("-> redirecting browser to LMS auth URL %s://%s%s%s",
+		authURL.Scheme, authURL.Host, authURL.Path, formatParams(existing))
 	return c.Redirect().Status(fiber.StatusFound).To(authURL.String())
 }
